@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -9,6 +9,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 import { Users, MapPin } from "lucide-react";
 
 const helpCategories = [
@@ -35,6 +38,8 @@ type VolunteerFormValues = z.infer<typeof volunteerFormSchema>;
 
 const VolunteerForm = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<VolunteerFormValues>({
@@ -50,18 +55,70 @@ const VolunteerForm = () => {
     },
   });
 
+  useEffect(() => {
+    if (user) {
+      // Pre-fill form with user data if available
+      const fetchProfile = async () => {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('display_name, email, phone')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (profile) {
+          form.setValue('name', profile.display_name || '');
+          form.setValue('email', profile.email || '');
+          form.setValue('phone', profile.phone || '');
+        }
+      };
+      fetchProfile();
+    }
+  }, [user, form]);
+
   const handleSubmit = async (data: VolunteerFormValues) => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please login to submit a volunteer application.",
+        variant: "destructive",
+      });
+      navigate('/auth');
+      return;
+    }
+
     setIsSubmitting(true);
     
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    toast({
-      title: "Welcome to Our Community! 🎉",
-      description: "Demo mode: Enable Lovable Cloud to process volunteer applications securely.",
-    });
-    
-    form.reset();
-    setIsSubmitting(false);
+    try {
+      const { error } = await supabase
+        .from('volunteer_applications')
+        .insert({
+          user_id: user.id,
+          name: data.name,
+          email: data.email,
+          phone: data.phone,
+          location: data.location,
+          categories: data.categories,
+          availability: data.availability || '',
+          skills: data.skills || '',
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Application Submitted! 🎉",
+        description: "Thank you for joining our community of helpers!",
+      });
+      
+      form.reset();
+    } catch (error: any) {
+      toast({
+        title: "Submission Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -230,9 +287,11 @@ const VolunteerForm = () => {
                   {isSubmitting ? "Submitting..." : "Join as Volunteer"}
                 </Button>
 
-                <p className="text-xs text-center text-muted-foreground">
-                  Demo mode: Enable Lovable Cloud for volunteer verification.
-                </p>
+                {!user && (
+                  <p className="text-xs text-center text-muted-foreground">
+                    You'll need to login to submit a volunteer application.
+                  </p>
+                )}
               </form>
             </Form>
           </Card>

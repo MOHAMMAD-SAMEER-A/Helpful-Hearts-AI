@@ -1,15 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 import { Heart, MapPin } from "lucide-react";
 
 const helpFormSchema = z.object({
@@ -27,6 +29,8 @@ type HelpFormValues = z.infer<typeof helpFormSchema>;
 
 const HelpForm = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<HelpFormValues>({
@@ -41,19 +45,69 @@ const HelpForm = () => {
     },
   });
 
+  useEffect(() => {
+    if (user) {
+      // Pre-fill form with user data if available
+      const fetchProfile = async () => {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('display_name, email, phone')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (profile) {
+          form.setValue('name', profile.display_name || '');
+          form.setValue('email', profile.email || '');
+          form.setValue('phone', profile.phone || '');
+        }
+      };
+      fetchProfile();
+    }
+  }, [user, form]);
+
   const handleSubmit = async (data: HelpFormValues) => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please login to submit a help request.",
+        variant: "destructive",
+      });
+      navigate('/auth');
+      return;
+    }
+
     setIsSubmitting(true);
     
-    // Simulate form submission
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    toast({
-      title: "Request Received! 💙",
-      description: "This is a demo. Enable Lovable Cloud to store and process requests securely.",
-    });
-    
-    form.reset();
-    setIsSubmitting(false);
+    try {
+      const { error } = await supabase
+        .from('help_requests')
+        .insert({
+          user_id: user.id,
+          name: data.name,
+          email: data.email,
+          phone: data.phone || '',
+          location: data.location,
+          category: data.category,
+          details: data.details,
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Request Submitted! 🤝",
+        description: "Our community will review your request and reach out soon.",
+      });
+      
+      form.reset();
+    } catch (error: any) {
+      toast({
+        title: "Submission Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -183,9 +237,11 @@ const HelpForm = () => {
                   {isSubmitting ? "Submitting..." : "Submit Request"}
                 </Button>
 
-                <p className="text-xs text-center text-muted-foreground">
-                  Demo mode: Enable Lovable Cloud to securely store requests.
-                </p>
+                {!user && (
+                  <p className="text-xs text-center text-muted-foreground">
+                    You'll need to login to submit a help request.
+                  </p>
+                )}
               </form>
             </Form>
           </Card>
