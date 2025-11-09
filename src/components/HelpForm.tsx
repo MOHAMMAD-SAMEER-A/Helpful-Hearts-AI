@@ -1,19 +1,47 @@
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Heart, MapPin } from "lucide-react";
+
+const helpFormSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
+  email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters"),
+  phone: z.string().regex(/^\(?[\d]{3}\)?[\s.-]?[\d]{3}[\s.-]?[\d]{4}$/, "Invalid phone number format").optional().or(z.literal("")),
+  location: z.string().trim().min(1, "Location is required").max(200, "Location must be less than 200 characters"),
+  category: z.enum(["food", "transportation", "housing", "healthcare", "childcare", "emotional", "other"], {
+    required_error: "Please select a category",
+  }),
+  details: z.string().trim().min(10, "Please provide at least 10 characters").max(2000, "Details must be less than 2000 characters"),
+});
+
+type HelpFormValues = z.infer<typeof helpFormSchema>;
 
 const HelpForm = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const form = useForm<HelpFormValues>({
+    resolver: zodResolver(helpFormSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      location: "",
+      category: undefined,
+      details: "",
+    },
+  });
+
+  const handleSubmit = async (data: HelpFormValues) => {
     setIsSubmitting(true);
     
     // Simulate form submission
@@ -21,9 +49,10 @@ const HelpForm = () => {
     
     toast({
       title: "Request Received! 💙",
-      description: "Our community is reviewing your request. You'll hear from us soon.",
+      description: "This is a demo. Enable Lovable Cloud to store and process requests securely.",
     });
     
+    form.reset();
     setIsSubmitting(false);
   };
 
@@ -39,71 +68,126 @@ const HelpForm = () => {
                 Let us know what you need. Our community is here to support you.
               </p>
             </div>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="name">Your Name</Label>
-                <Input id="name" placeholder="Enter your name" required />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="your@email.com" required />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input id="phone" type="tel" placeholder="(123) 456-7890" />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="location">
-                  <MapPin className="h-4 w-4 inline mr-1" />
-                  Location
-                </Label>
-                <Input id="location" placeholder="City, State" required />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="category">Type of Help Needed</Label>
-                <Select required>
-                  <SelectTrigger id="category">
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="food">Food Assistance</SelectItem>
-                    <SelectItem value="transportation">Transportation</SelectItem>
-                    <SelectItem value="housing">Housing Support</SelectItem>
-                    <SelectItem value="healthcare">Healthcare</SelectItem>
-                    <SelectItem value="childcare">Childcare</SelectItem>
-                    <SelectItem value="emotional">Emotional Support</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="details">Tell Us More</Label>
-                <Textarea 
-                  id="details" 
-                  placeholder="Describe your situation and how we can help..."
-                  className="min-h-[120px]"
-                  required
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Your Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter your name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
+                
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="your@email.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <Button 
-                type="submit" 
-                variant="hero" 
-                className="w-full"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Submitting..." : "Submit Request"}
-              </Button>
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone Number</FormLabel>
+                      <FormControl>
+                        <Input type="tel" placeholder="(123) 456-7890" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <p className="text-xs text-center text-muted-foreground">
-                Your information is kept private and only shared with verified helpers.
-              </p>
-            </form>
+                <FormField
+                  control={form.control}
+                  name="location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        <MapPin className="h-4 w-4 inline mr-1" />
+                        Location
+                      </FormLabel>
+                      <FormControl>
+                        <Input placeholder="City, State" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Type of Help Needed</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a category" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="food">Food Assistance</SelectItem>
+                          <SelectItem value="transportation">Transportation</SelectItem>
+                          <SelectItem value="housing">Housing Support</SelectItem>
+                          <SelectItem value="healthcare">Healthcare</SelectItem>
+                          <SelectItem value="childcare">Childcare</SelectItem>
+                          <SelectItem value="emotional">Emotional Support</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="details"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tell Us More</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Describe your situation and how we can help..."
+                          className="min-h-[120px]"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <Button 
+                  type="submit" 
+                  variant="hero" 
+                  className="w-full"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Submitting..." : "Submit Request"}
+                </Button>
+
+                <p className="text-xs text-center text-muted-foreground">
+                  Demo mode: Enable Lovable Cloud to securely store requests.
+                </p>
+              </form>
+            </Form>
           </Card>
         </div>
       </div>

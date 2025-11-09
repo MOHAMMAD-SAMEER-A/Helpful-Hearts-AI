@@ -1,9 +1,12 @@
 import { useState } from "react";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { MessageSquare, X, Send, Sparkles } from "lucide-react";
 import chatbotIcon from "@/assets/chatbot-icon.png";
+
+const messageSchema = z.string().trim().min(1).max(500);
 
 const AIChatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -16,11 +19,15 @@ const AIChatbot = () => {
   const [input, setInput] = useState("");
 
   const handleSend = () => {
-    if (!input.trim()) return;
+    const validationResult = messageSchema.safeParse(input);
+    
+    if (!validationResult.success) {
+      return;
+    }
 
     const newMessages = [
       ...messages,
-      { role: "user", content: input },
+      { role: "user", content: validationResult.data },
       {
         role: "assistant",
         content: "Thank you for reaching out! While I'm a demo chatbot, in a full version I would help you with personalized guidance, connect you with resources, or assist in finding the right community support. Would you like to fill out a help request form or volunteer form?",

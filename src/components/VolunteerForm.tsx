@@ -1,10 +1,13 @@
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Users, MapPin } from "lucide-react";
 
@@ -16,23 +19,48 @@ const helpCategories = [
   { id: "childcare", label: "Childcare" },
   { id: "emotional", label: "Emotional Support" },
   { id: "other", label: "Other" },
-];
+] as const;
+
+const volunteerFormSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
+  email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters"),
+  phone: z.string().regex(/^\(?[\d]{3}\)?[\s.-]?[\d]{3}[\s.-]?[\d]{4}$/, "Invalid phone number format"),
+  location: z.string().trim().min(1, "Location is required").max(200, "Location must be less than 200 characters"),
+  categories: z.array(z.string()).min(1, "Please select at least one category"),
+  availability: z.string().trim().max(500, "Availability must be less than 500 characters").optional(),
+  skills: z.string().trim().max(1000, "Skills must be less than 1000 characters").optional(),
+});
+
+type VolunteerFormValues = z.infer<typeof volunteerFormSchema>;
 
 const VolunteerForm = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const form = useForm<VolunteerFormValues>({
+    resolver: zodResolver(volunteerFormSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      location: "",
+      categories: [],
+      availability: "",
+      skills: "",
+    },
+  });
+
+  const handleSubmit = async (data: VolunteerFormValues) => {
     setIsSubmitting(true);
     
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     toast({
       title: "Welcome to Our Community! 🎉",
-      description: "Thank you for offering to help. We'll connect you with those who need your support.",
+      description: "Demo mode: Enable Lovable Cloud to process volunteer applications securely.",
     });
     
+    form.reset();
     setIsSubmitting(false);
   };
 
@@ -48,78 +76,165 @@ const VolunteerForm = () => {
                 Share your time, skills, and kindness with those who need it most.
               </p>
             </div>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="volunteer-name">Your Name</Label>
-                <Input id="volunteer-name" placeholder="Enter your name" required />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="volunteer-email">Email</Label>
-                <Input id="volunteer-email" type="email" placeholder="your@email.com" required />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="volunteer-phone">Phone Number</Label>
-                <Input id="volunteer-phone" type="tel" placeholder="(123) 456-7890" required />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="volunteer-location">
-                  <MapPin className="h-4 w-4 inline mr-1" />
-                  Location
-                </Label>
-                <Input id="volunteer-location" placeholder="City, State" required />
-              </div>
-
-              <div className="space-y-3">
-                <Label>Areas You Can Help With</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  {helpCategories.map((category) => (
-                    <div key={category.id} className="flex items-center space-x-2">
-                      <Checkbox id={`cat-${category.id}`} />
-                      <label
-                        htmlFor={`cat-${category.id}`}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                      >
-                        {category.label}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="availability">Your Availability</Label>
-                <Textarea 
-                  id="availability" 
-                  placeholder="Let us know when you're available to help (e.g., weekends, evenings)..."
-                  className="min-h-[80px]"
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Your Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter your name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="volunteer-skills">Special Skills or Resources</Label>
-                <Textarea 
-                  id="volunteer-skills" 
-                  placeholder="Tell us about any special skills, resources, or experiences you can share..."
-                  className="min-h-[100px]"
+                
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="your@email.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
 
-              <Button 
-                type="submit" 
-                variant="hero" 
-                className="w-full"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Submitting..." : "Join as Volunteer"}
-              </Button>
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone Number</FormLabel>
+                      <FormControl>
+                        <Input type="tel" placeholder="(123) 456-7890" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <p className="text-xs text-center text-muted-foreground">
-                All volunteers are verified to ensure safe and trusted connections.
-              </p>
-            </form>
+                <FormField
+                  control={form.control}
+                  name="location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        <MapPin className="h-4 w-4 inline mr-1" />
+                        Location
+                      </FormLabel>
+                      <FormControl>
+                        <Input placeholder="City, State" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="categories"
+                  render={() => (
+                    <FormItem>
+                      <div className="mb-4">
+                        <FormLabel>Areas You Can Help With</FormLabel>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        {helpCategories.map((category) => (
+                          <FormField
+                            key={category.id}
+                            control={form.control}
+                            name="categories"
+                            render={({ field }) => {
+                              return (
+                                <FormItem
+                                  key={category.id}
+                                  className="flex flex-row items-start space-x-3 space-y-0"
+                                >
+                                  <FormControl>
+                                    <Checkbox
+                                      checked={field.value?.includes(category.id)}
+                                      onCheckedChange={(checked) => {
+                                        return checked
+                                          ? field.onChange([...field.value, category.id])
+                                          : field.onChange(
+                                              field.value?.filter(
+                                                (value) => value !== category.id
+                                              )
+                                            )
+                                      }}
+                                    />
+                                  </FormControl>
+                                  <FormLabel className="font-normal cursor-pointer">
+                                    {category.label}
+                                  </FormLabel>
+                                </FormItem>
+                              )
+                            }}
+                          />
+                        ))}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="availability"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Your Availability</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Let us know when you're available to help (e.g., weekends, evenings)..."
+                          className="min-h-[80px]"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="skills"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Special Skills or Resources</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Tell us about any special skills, resources, or experiences you can share..."
+                          className="min-h-[100px]"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <Button 
+                  type="submit" 
+                  variant="hero" 
+                  className="w-full"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Submitting..." : "Join as Volunteer"}
+                </Button>
+
+                <p className="text-xs text-center text-muted-foreground">
+                  Demo mode: Enable Lovable Cloud for volunteer verification.
+                </p>
+              </form>
+            </Form>
           </Card>
         </div>
       </div>
