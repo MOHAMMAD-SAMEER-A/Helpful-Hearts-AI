@@ -17,7 +17,7 @@ import { Heart, MapPin } from "lucide-react";
 const helpFormSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
   email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters"),
-  phone: z.string().regex(/^\(?[\d]{3}\)?[\s.-]?[\d]{3}[\s.-]?[\d]{4}$/, "Invalid phone number format").optional().or(z.literal("")),
+  phone: z.string().regex(/^(\+91[\s-]?)?[6-9]\d{9}$/, "Invalid phone number format. Enter 10 digits starting with 6-9").optional().or(z.literal("")),
   location: z.string().trim().min(1, "District is required").max(200, "District must be less than 200 characters"),
   category: z.enum(["food", "transportation", "housing", "healthcare", "childcare", "emotional", "other"], {
     required_error: "Please select a category",
@@ -159,7 +159,7 @@ const HelpForm = () => {
                     <FormItem>
                       <FormLabel>Phone Number</FormLabel>
                       <FormControl>
-                        <Input type="tel" placeholder="(123) 456-7890" {...field} />
+                        <Input type="tel" placeholder="9876543210" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
