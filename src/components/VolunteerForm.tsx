@@ -28,7 +28,7 @@ const volunteerFormSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
   email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters"),
   phone: z.string().regex(/^\(?[\d]{3}\)?[\s.-]?[\d]{3}[\s.-]?[\d]{4}$/, "Invalid phone number format"),
-  location: z.string().trim().min(1, "Location is required").max(200, "Location must be less than 200 characters"),
+  location: z.string().trim().min(1, "District is required").max(200, "District must be less than 200 characters"),
   categories: z.array(z.string()).min(1, "Please select at least one category"),
   availability: z.string().trim().max(500, "Availability must be less than 500 characters").optional(),
   skills: z.string().trim().max(1000, "Skills must be less than 1000 characters").optional(),
@@ -184,10 +184,10 @@ const VolunteerForm = () => {
                     <FormItem>
                       <FormLabel>
                         <MapPin className="h-4 w-4 inline mr-1" />
-                        Location
+                        District
                       </FormLabel>
                       <FormControl>
-                        <Input placeholder="City, State" {...field} />
+                        <Input placeholder="Enter your district" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
