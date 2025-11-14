@@ -19,6 +19,7 @@ const helpFormSchema = z.object({
   email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters"),
   phone: z.string().regex(/^(\+91[\s-]?)?[6-9]\d{9}$/, "Invalid phone number format. Enter 10 digits starting with 6-9").optional().or(z.literal("")),
   location: z.string().trim().min(1, "District is required").max(200, "District must be less than 200 characters"),
+  pincode: z.string().regex(/^\d{6}$/, "Enter a valid 6-digit pincode").optional().or(z.literal("")),
   category: z.enum(["food", "transportation", "housing", "healthcare", "childcare", "emotional", "other"], {
     required_error: "Please select a category",
   }),
@@ -40,6 +41,7 @@ const HelpForm = () => {
       email: "",
       phone: "",
       location: "",
+      pincode: "",
       category: undefined,
       details: "",
     },
@@ -59,6 +61,20 @@ const HelpForm = () => {
           form.setValue('name', profile.display_name || '');
           form.setValue('email', profile.email || '');
           form.setValue('phone', profile.phone || '');
+        }
+        
+        // Pre-fill location data if available from previous submissions
+        const { data: lastRequest } = await supabase
+          .from('help_requests')
+          .select('location, pincode')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        if (lastRequest) {
+          if (lastRequest.location) form.setValue('location', lastRequest.location);
+          if (lastRequest.pincode) form.setValue('pincode', lastRequest.pincode);
         }
       };
       fetchProfile();
@@ -87,6 +103,7 @@ const HelpForm = () => {
           email: data.email,
           phone: data.phone || '',
           location: data.location,
+          pincode: data.pincode || '',
           category: data.category,
           details: data.details,
         });
@@ -177,6 +194,25 @@ const HelpForm = () => {
                       </FormLabel>
                       <FormControl>
                         <Input placeholder="Enter your district" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="pincode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Pincode (Optional)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="text" 
+                          placeholder="Enter 6-digit pincode" 
+                          maxLength={6}
+                          {...field} 
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

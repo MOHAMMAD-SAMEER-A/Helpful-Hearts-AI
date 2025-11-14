@@ -29,6 +29,7 @@ const volunteerFormSchema = z.object({
   email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters"),
   phone: z.string().regex(/^(\+91[\s-]?)?[6-9]\d{9}$/, "Invalid phone number format. Enter 10 digits starting with 6-9"),
   location: z.string().trim().min(1, "District is required").max(200, "District must be less than 200 characters"),
+  pincode: z.string().regex(/^\d{6}$/, "Enter a valid 6-digit pincode").optional().or(z.literal("")),
   categories: z.array(z.string()).min(1, "Please select at least one category"),
   availability: z.string().trim().max(500, "Availability must be less than 500 characters").optional(),
   skills: z.string().trim().max(1000, "Skills must be less than 1000 characters").optional(),
@@ -49,6 +50,7 @@ const VolunteerForm = () => {
       email: "",
       phone: "",
       location: "",
+      pincode: "",
       categories: [],
       availability: "",
       skills: "",
@@ -69,6 +71,20 @@ const VolunteerForm = () => {
           form.setValue('name', profile.display_name || '');
           form.setValue('email', profile.email || '');
           form.setValue('phone', profile.phone || '');
+        }
+        
+        // Pre-fill location data if available from previous submissions
+        const { data: lastApplication } = await supabase
+          .from('volunteer_applications')
+          .select('location, pincode')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        if (lastApplication) {
+          if (lastApplication.location) form.setValue('location', lastApplication.location);
+          if (lastApplication.pincode) form.setValue('pincode', lastApplication.pincode);
         }
       };
       fetchProfile();
@@ -97,6 +113,7 @@ const VolunteerForm = () => {
           email: data.email,
           phone: data.phone,
           location: data.location,
+          pincode: data.pincode || '',
           categories: data.categories,
           availability: data.availability || '',
           skills: data.skills || '',
@@ -188,6 +205,25 @@ const VolunteerForm = () => {
                       </FormLabel>
                       <FormControl>
                         <Input placeholder="Enter your district" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="pincode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Pincode (Optional)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="text" 
+                          placeholder="Enter 6-digit pincode" 
+                          maxLength={6}
+                          {...field} 
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
