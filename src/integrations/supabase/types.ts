@@ -24,6 +24,7 @@ export type Database = {
           location: string
           name: string
           phone: string
+          pincode: string | null
           status: string
           updated_at: string
           user_id: string
@@ -37,6 +38,7 @@ export type Database = {
           location: string
           name: string
           phone: string
+          pincode?: string | null
           status?: string
           updated_at?: string
           user_id: string
@@ -50,6 +52,7 @@ export type Database = {
           location?: string
           name?: string
           phone?: string
+          pincode?: string | null
           status?: string
           updated_at?: string
           user_id?: string
@@ -114,6 +117,7 @@ export type Database = {
           location: string
           name: string
           phone: string
+          pincode: string | null
           skills: string
           status: string
           updated_at: string
@@ -128,6 +132,7 @@ export type Database = {
           location: string
           name: string
           phone: string
+          pincode?: string | null
           skills: string
           status?: string
           updated_at?: string
@@ -142,6 +147,7 @@ export type Database = {
           location?: string
           name?: string
           phone?: string
+          pincode?: string | null
           skills?: string
           status?: string
           updated_at?: string
