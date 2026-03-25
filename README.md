@@ -1,4 +1,4 @@
-# Welcome to your Lovable project
+# Welcome to my Helpful-Hearts-AI project
 
 ## Project info
 
